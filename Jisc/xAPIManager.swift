@@ -18,6 +18,7 @@ let xAPIGetEngagementDataPath = "v2/engagement"
 let xAPIGetModulesPath = "v2/filter"
 let xAPIGetAttainmentPath = "v2/attainment"
 let xAPIGetComparisonToTop10PercentPath = "v2/engagement"
+let xAPIGetEventsAttendedPath = "https://api.x-dev.data.alpha.jisc.ac.uk/sg/attendance?"
 
 typealias xAPICompletionBlock = ((_ success:Bool, _ result:NSDictionary?, _ results:NSArray?, _ error:String?) -> Void)
 
@@ -80,20 +81,8 @@ class xAPIManager: NSObject, NSURLConnectionDataDelegate, NSURLConnectionDelegat
 				
 				if (code == .unauthorized) {
 					completionBlock = nil
-					if let cookies = HTTPCookieStorage.shared.cookies {
-						for cookie in cookies {
-							HTTPCookieStorage.shared.deleteCookie(cookie)
-						}
-					}
-					runningActivititesTimer.invalidate()
-					DELEGATE.menuView?.feedViewController.refreshTimer?.invalidate()
-					dataManager.currentStudent = nil
-					dataManager.firstTrophyCheck = true
-					deleteCurrentUser()
-					clearXAPIToken()
-					DELEGATE.mainNavigationController = UINavigationController(rootViewController: LoginVC())
-					DELEGATE.mainNavigationController?.isNavigationBarHidden = true
-					DELEGATE.window?.rootViewController = DELEGATE.mainNavigationController
+
+					dataManager.logout()
 					UIAlertView(title: localized("session_expired_title"), message: localized("session_expired_message"), delegate: nil, cancelButtonTitle: localized("ok")).show()
 				}
 			}
@@ -407,7 +396,7 @@ class xAPIManager: NSObject, NSURLConnectionDataDelegate, NSURLConnectionDelegat
 	func getStudentDetails(_ completion:@escaping xAPICompletionBlock) {
 		completionBlock = completion
 		var request:URLRequest?
-		if staff() {
+		if currentUserType() == .staff {
 			if let url = urlWithHost("https://sp.data.alpha.jisc.ac.uk/", path: "staff/") {
 				request = URLRequest(url: url)
 			}
@@ -431,6 +420,20 @@ class xAPIManager: NSObject, NSURLConnectionDataDelegate, NSURLConnectionDelegat
 		completionBlock = completion
 		startConnectionWithRequest(createGetRequest("\(xAPIGetActivityPointsPath)?scope=\(period.rawValue)", withJWT: true))
 	}
+    
+    func getEventsAttended(skip:Int, limit:Int, completion:@escaping xAPICompletionBlock) {
+        completionBlock = completion
+        var request:URLRequest?
+        if let url = urlWithHost(xAPIGetEventsAttendedPath, path: "skip=\(skip)&limit=\(limit)") {
+            request = URLRequest(url: url)
+        }
+        if let token = xAPIToken() {
+            request?.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            print("\(token)")
+        }
+        startConnectionWithRequest(request)
+        print()
+    }
 	
 	func getModules(_ completion:@escaping xAPICompletionBlock) {
 		completionBlock = completion
@@ -481,11 +484,10 @@ class xAPIManager: NSObject, NSURLConnectionDataDelegate, NSURLConnectionDelegat
         }
         if var request = request {
             if let token = xAPIToken() {
-               // print("This is the token Ahmed",token)
                 request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             }
             NSURLConnection.sendAsynchronousRequest(request, queue: OperationQueue.main) {(response, data, error) in
-                print("This is the data from the request AHMED!!!",NSString(data: data!, encoding: String.Encoding.utf8.rawValue) as! Any)
+
             }
             //startConnectionWithRequest(request)
         } else {
@@ -502,22 +504,18 @@ class xAPIManager: NSObject, NSURLConnectionDataDelegate, NSURLConnectionDelegat
         }
         if var request = request {
             if let token = xAPIToken() {
-                // print("This is the token Ahmed",token)
-                request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                request.addValue("Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE1MDE2NzE5NjYsImp0aSI6Ill0Vk5uYUk2a3lPbW0xQXAyeWMwNitYRTBGaHRVQUc1M3U1eXk4OUxJWVk9IiwiaXNzIjoiaHR0cDpcL1wvbG9jYWxob3N0XC9leGFtcGxlIiwibmJmIjoxNTAxNjcxOTU2LCJleHAiOjE1MDU4MTkxNTYsImRhdGEiOnsiZXBwbiI6ImFsaWNlQHRlc3QudWtmZWRlcmF0aW9uLm9yZy51ayIsInBpZCI6ImFsaWNlQHRlc3QudWtmZWRlcmF0aW9uLm9yZy51ayIsImFmZmlsaWF0aW9uIjoiYWZmaWxpYXRlQHRlc3QudWtmZWRlcmF0aW9uLm9yZy51ayJ9fQ.A99AszSnbL5b4frXXmcoejaTgrVMck7PNBJxtPLIuAgsz4GQmTpk8uWgBeNP8uO2OX9o1WlVvsx0op_45r-8MQ", forHTTPHeaderField: "Authorization")
             }
             NSURLConnection.sendAsynchronousRequest(request, queue: OperationQueue.main) {(response, data, error) in
                 returnedString = NSString(data: data!, encoding: String.Encoding.utf8.rawValue)! as String
-                print("This is the data from the request AHMED!!!",returnedString)
+                //print(response)
+
                 if (testUrl=="https://api.x-dev.data.alpha.jisc.ac.uk/sg/setting?setting=studyGoalAttendance"){
                     let defaults = UserDefaults.standard
                     defaults.set(returnedString, forKey: "SettingsReturn")
                 } else if (testUrl=="https://api.x-dev.data.alpha.jisc.ac.uk/sg/setting?setting=attendanceData") {
                     let defaults = UserDefaults.standard
                     defaults.set(returnedString, forKey: "SettingsReturnAttendance")
-                } else {
-                    let defaults = UserDefaults.standard
-                    defaults.set(returnedString, forKey: "SettingsReturnAttainment")
-
                 }
             }
             //startConnectionWithRequest(request)
