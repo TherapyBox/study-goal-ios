@@ -75,7 +75,7 @@ enum GraphType {
 class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, CustomPickerViewDelegate, UIScrollViewDelegate {
     
     @IBOutlet weak var contentCenterX:NSLayoutConstraint!
-    //	@IBOutlet weak var pageSegment:UISegmentedControl?
+    	@IBOutlet weak var topLabel:UILabel!
     @IBOutlet weak var titleLabel:UILabel!
     @IBOutlet weak var blueDot:UIImageView!
     @IBOutlet weak var comparisonStudentName:UILabel!
@@ -83,6 +83,7 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
     var selectedPeriod:Int = 0 // 30 days
     var selectedStudent:Int = 0
     @IBOutlet weak var graphView:UIView!
+
     @IBOutlet weak var graphContainer:UIView!
     @IBOutlet weak var graphContainerWidth:NSLayoutConstraint!
     @IBOutlet weak var viewWithVerticalLabels:UIView!
@@ -225,6 +226,7 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+
         getAttainmentData {
             
         }
@@ -304,6 +306,9 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
             self.attainmentArray.sort(by: { (obj1:AttainmentObject, obj2:AttainmentObject) -> Bool in
                 return (obj2.date.compare(obj1.date) != .orderedDescending)
             })
+            if(self.attainmentArray.count == 0){
+                print("noattain!")
+            }
             self.attainmentTableView.reloadData()
             completion()
         }
@@ -446,7 +451,7 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
     //	}
     
     func goToGraph() {
-        
+        topLabel.text = "VLE Activity"
         hideUpperViews()
         container.isHidden = false
         
@@ -461,7 +466,7 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
         
         hideUpperViews()
         container.isHidden = false
-        
+        topLabel.text = "Attainment"
         guard let center = contentCenterX else { return }
         UIView.animate(withDuration: 0.25) {
             center.constant = 0.0
@@ -476,7 +481,8 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
         
         hideUpperViews()
         container.isHidden = false
-        
+        topLabel.text = "Activity points"
+
         guard let center = contentCenterX else { return }
         UIView.animate(withDuration: 0.25) {
             center.constant = -self.view.frame.size.width
@@ -491,6 +497,8 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
     
     func goToLeaderBoard() {
         hideUpperViews()
+        topLabel.text = "Leaderboard"
+
         leaderBoard.isHidden = true
         //London Developer July 24,2017
         let urlString = "https://api.x-dev.data.alpha.jisc.ac.uk/sg/log?verb=viewed&contentID=stats-leaderboard&contentName=leaderboard"
@@ -500,6 +508,8 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
     
     func goToEventsAttended() {
         hideUpperViews()
+        topLabel.text = "Events Attended"
+
         eventAtteneded.isHidden = false
         //London Developer July 24,2017
         let urlString = "https://api.x-dev.data.alpha.jisc.ac.uk/sg/log?verb=viewed&contentID=stats-events&contentName=eventsAttended"
@@ -509,10 +519,14 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
     func goToAttendance() {
         hideUpperViews()
         attendance.isHidden = false
+        topLabel.text = "Attendance Summary"
+
         //container.isHidden = false
         //London Developer July 24,2017
         let urlString = "https://api.x-dev.data.alpha.jisc.ac.uk/sg/log?verb=viewed&contentID=stats-attendance-summary&contentName=attendanceGraph"
         xAPIManager().checkMod(testUrl:urlString)
+        self.view.addSubview(attendance)
+        
     }
     
     private func hideUpperViews() {
@@ -632,7 +646,72 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
     }
     
     //MARK: UITableView Delegate
-    
+    func numberOfSections(in tableView: UITableView) -> Int
+    {
+        var numOfSections: Int = 0
+
+        switch tableView {
+        case attainmentTableView:
+            if (attainmentArray.count > 0)
+            {
+                tableView.separatorStyle = .singleLine
+                numOfSections            = 1
+                tableView.backgroundView = nil
+            }
+            else
+            {
+                let noDataLabel: UILabel     = UILabel(frame: CGRect(x: 0, y: 0, width: tableView.bounds.size.width, height: tableView.bounds.size.height))
+                noDataLabel.text          = "No data available"
+                noDataLabel.textColor     = UIColor.black
+                noDataLabel.textAlignment = .center
+                tableView.backgroundView  = noDataLabel
+                tableView.separatorStyle  = .none
+            }
+            break
+        case pointsTable:
+            if (pointsArray.count > 0)
+            {
+                tableView.separatorStyle = .singleLine
+                numOfSections            = 1
+                tableView.backgroundView = nil
+            }
+            else
+            {
+                let noDataLabel: UILabel     = UILabel(frame: CGRect(x: 0, y: 0, width: tableView.bounds.size.width, height: tableView.bounds.size.height))
+                noDataLabel.text          = "No data available"
+                noDataLabel.textColor     = UIColor.black
+                noDataLabel.textAlignment = .center
+                tableView.backgroundView  = noDataLabel
+                tableView.separatorStyle  = .none
+            }
+
+            break
+        case eventsAttendedTableView:
+            if (eventsAttendedArray.count > 0)
+            {
+                tableView.separatorStyle = .singleLine
+                numOfSections            = 1
+                tableView.backgroundView = nil
+            }
+            else
+            {
+                let noDataLabel: UILabel     = UILabel(frame: CGRect(x: 0, y: 0, width: tableView.bounds.size.width, height: tableView.bounds.size.height))
+                noDataLabel.text          = "No data available"
+                noDataLabel.textColor     = UIColor.black
+                noDataLabel.textAlignment = .center
+                tableView.backgroundView  = noDataLabel
+                tableView.separatorStyle  = .none
+            }
+            
+            break
+        default:
+            break
+        }
+        
+        
+        
+        return numOfSections
+    }
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         switch tableView {
         case attainmentTableView:
