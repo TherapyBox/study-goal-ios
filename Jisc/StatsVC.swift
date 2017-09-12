@@ -399,6 +399,7 @@ class StatsVC: BaseViewController, UITableViewDataSource, UITableViewDelegate, C
            
 
             print("here is the sorted array ", self.eventsAttendedArray.sort(by: { $0.date.compare($1.date) == .orderedDescending}))
+            //self.orderedEventsAttendedArray =
 
             print(self.eventsAttendedArray.count)
             self.eventsAttendedTableView.reloadData()
